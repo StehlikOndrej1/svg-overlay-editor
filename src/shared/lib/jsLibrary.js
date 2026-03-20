@@ -4,6 +4,122 @@ export const JS_LIBRARY = `/**
  */
 (function(global) {
   'use strict';
+
+  function parsePointsString(pointsStr) {
+    return String(pointsStr || '')
+      .trim()
+      .split(/\\s+/)
+      .filter(Boolean)
+      .map(function(pair) { return pair.split(',').map(Number); })
+      .filter(function(pair) { return Number.isFinite(pair[0]) && Number.isFinite(pair[1]); })
+      .map(function(pair) { return { x: pair[0], y: pair[1] }; });
+  }
+
+  function parsePathData(pathData) {
+    var tokens = String(pathData || '').match(/[a-zA-Z]|-?\\d*\\.?\\d+(?:e[-+]?\\d+)?/g) || [];
+    var rings = [];
+    var ring = [];
+    var command = null;
+    var cursor = { x: 0, y: 0 };
+    var startPoint = null;
+    var index = 0;
+
+    function closeRing() {
+      if (!ring.length) return;
+      var normalized = ring.slice();
+      var first = normalized[0];
+      var last = normalized[normalized.length - 1];
+      if (first && last && first.x === last.x && first.y === last.y) normalized.pop();
+      if (normalized.length >= 3) rings.push(normalized);
+      ring = [];
+      startPoint = null;
+    }
+
+    function readNumber() {
+      var token = tokens[index];
+      if (token == null || /^[a-zA-Z]$/.test(token)) return null;
+      index += 1;
+      return Number(token);
+    }
+
+    while (index < tokens.length) {
+      var token = tokens[index];
+      if (/^[a-zA-Z]$/.test(token)) {
+        command = token;
+        index += 1;
+        if (command === 'Z' || command === 'z') {
+          var closedAt = startPoint ? { x: startPoint.x, y: startPoint.y } : null;
+          closeRing();
+          if (closedAt) cursor = closedAt;
+        }
+        continue;
+      }
+
+      if (!command) break;
+
+      if (command === 'M' || command === 'm') {
+        var mx = readNumber();
+        var my = readNumber();
+        if (mx == null || my == null) break;
+        closeRing();
+        cursor = command === 'm' ? { x: cursor.x + mx, y: cursor.y + my } : { x: mx, y: my };
+        startPoint = { x: cursor.x, y: cursor.y };
+        ring.push({ x: cursor.x, y: cursor.y });
+        command = command === 'm' ? 'l' : 'L';
+        continue;
+      }
+
+      if (command === 'L' || command === 'l') {
+        var lx = readNumber();
+        var ly = readNumber();
+        if (lx == null || ly == null) break;
+        cursor = command === 'l' ? { x: cursor.x + lx, y: cursor.y + ly } : { x: lx, y: ly };
+        ring.push({ x: cursor.x, y: cursor.y });
+        continue;
+      }
+
+      if (command === 'H' || command === 'h') {
+        var hx = readNumber();
+        if (hx == null) break;
+        cursor = command === 'h' ? { x: cursor.x + hx, y: cursor.y } : { x: hx, y: cursor.y };
+        ring.push({ x: cursor.x, y: cursor.y });
+        continue;
+      }
+
+      if (command === 'V' || command === 'v') {
+        var vy = readNumber();
+        if (vy == null) break;
+        cursor = command === 'v' ? { x: cursor.x, y: cursor.y + vy } : { x: cursor.x, y: vy };
+        ring.push({ x: cursor.x, y: cursor.y });
+        continue;
+      }
+
+      break;
+    }
+
+    closeRing();
+    return rings;
+  }
+
+  function getGeometry(el) {
+    var tag = String(el.tagName || '').toLowerCase();
+    if (tag === 'polygon') {
+      return { type: 'polygon', points: parsePointsString(el.getAttribute('points')), holes: [] };
+    }
+    if (tag === 'path') {
+      var rings = parsePathData(el.getAttribute('d'));
+      return {
+        type: 'polygon',
+        points: rings[0] || [],
+        holes: rings.slice(1),
+        path: el.getAttribute('d') || ''
+      };
+    }
+    if (tag === 'rect') return { type:'rect', x:+el.getAttribute('x'), y:+el.getAttribute('y'), width:+el.getAttribute('width'), height:+el.getAttribute('height') };
+    if (tag === 'circle') return { type:'circle', cx:+el.getAttribute('cx'), cy:+el.getAttribute('cy'), r:+el.getAttribute('r') };
+    return { type: tag };
+  }
+
   class SVGOverlayMap {
     constructor(options = {}) {
       this.container = typeof options.container === 'string'
@@ -41,20 +157,13 @@ export const JS_LIBRARY = `/**
             Array.from(el.attributes).forEach(a => {
               if (a.name.startsWith('data-') && a.name !== 'data-overlay-id') attrs[a.name.replace('data-', '')] = a.value;
             });
-            this.elements.set(id, { el, id, attrs, geometry: this._getGeometry(el) });
+            this.elements.set(id, { el, id, attrs, geometry: getGeometry(el) });
             el.addEventListener('click', (e) => { e.stopPropagation(); if (this.onElementClick) this.onElementClick(this.getElement(id), e); });
             el.addEventListener('mouseenter', (e) => { if (this.onElementHover) this.onElementHover(this.getElement(id), e); });
           });
           this.container.appendChild(svg); this._svg = svg;
         }
       }
-    }
-    _getGeometry(el) {
-      const tag = el.tagName.toLowerCase();
-      if (tag === 'polygon') return { type:'polygon', points: el.getAttribute('points') };
-      if (tag === 'rect') return { type:'rect', x:+el.getAttribute('x'), y:+el.getAttribute('y'), width:+el.getAttribute('width'), height:+el.getAttribute('height') };
-      if (tag === 'circle') return { type:'circle', cx:+el.getAttribute('cx'), cy:+el.getAttribute('cy'), r:+el.getAttribute('r') };
-      return { type: tag };
     }
     getElement(id) { const item = this.elements.get(id); if (!item) return null; return { id: item.id, attrs: { ...item.attrs }, geometry: item.geometry }; }
     getAllElements() { return Array.from(this.elements.values()).map(i => this.getElement(i.id)); }

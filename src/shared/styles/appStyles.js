@@ -100,8 +100,8 @@ export const appStyles = `
   .canvas-wrapper img { display:block; user-select:none; -webkit-user-drag:none; }
   .canvas-wrapper svg { position:absolute; top:0; left:0; width:100%; height:100%; }
   .drawing-svg { cursor:crosshair; }
-  .drawing-svg polygon { cursor:pointer; transition:fill 0.15s; }
-  .drawing-svg polygon:hover { fill:rgba(59,130,246,0.35) !important; }
+  .drawing-svg polygon, .drawing-svg path { cursor:pointer; transition:fill 0.15s; }
+  .drawing-svg polygon:hover, .drawing-svg path:hover { fill:rgba(59,130,246,0.35) !important; }
 
   .upload-zone {
     border:2px dashed var(--border); border-radius:12px;

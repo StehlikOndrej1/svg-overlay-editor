@@ -13,6 +13,10 @@ export default function AttributesEditor({
 }) {
   return (
     <div style={{ animation: 'fadeIn 0.2s ease' }}>
+      <div style={{ marginBottom: 12 }}>
+        <div className="form-label" style={{ marginBottom: 4 }}>Atributy</div>
+        <div style={{ fontSize: 16, fontWeight: 700 }}>Konfigurace prvku</div>
+      </div>
       <GroupSwitcher groups={groups} activeGroupId={activeGroupId} setActiveGroupId={setActiveGroupId} />
       <div className="form-group">
         <label className="form-label">ID prvku</label>

@@ -1,14 +1,11 @@
 import { buildElementPathData, pointsToPathSegment } from '../lib/svgUtils.js';
 
-<<<<<<< codex/reimplement-polygon-holes-support-r6shil
 function getActiveRingPoints(element, ringIndex) {
   if (!element) return [];
   if (ringIndex === -1) return element.points || [];
   return element.holes?.[ringIndex] || [];
 }
 
-=======
->>>>>>> main
 export default function EditorCanvas({
   activeRingIndex,
   addVertex,
@@ -44,14 +41,8 @@ export default function EditorCanvas({
 }) {
   if (phase !== 'canvas') return null;
 
-<<<<<<< codex/reimplement-polygon-holes-support-r6shil
   const activeRingPoints = getActiveRingPoints(editGeomEl, activeRingIndex);
   const draftActiveRingPoints = getActiveRingPoints(draftElement, activeRingIndex);
-=======
-  const activeRingPoints = editGeomEl
-    ? (activeRingIndex === -1 ? editGeomEl.points || [] : editGeomEl.holes?.[activeRingIndex] || [])
-    : [];
->>>>>>> main
 
   return (
     <>
@@ -64,11 +55,7 @@ export default function EditorCanvas({
             viewBox={`0 0 ${imgSize.w} ${imgSize.h}`}
             onClick={handleCanvasClick}
             onDoubleClick={handleDoubleClick}
-<<<<<<< codex/reimplement-polygon-holes-support-r6shil
             style={(editGeomId || draftElement) && !isDrawingHole ? { cursor: 'default' } : {}}
-=======
-            style={editGeomId && !isDrawingHole ? { cursor: 'default' } : {}}
->>>>>>> main
           >
             {elements.map(el => {
               const isSelected = selectedId === el.id;

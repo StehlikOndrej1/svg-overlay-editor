@@ -1,15 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const OUTER_RING_INDEX = -1;
-<<<<<<< codex/reimplement-polygon-holes-support-r6shil
 const DRAFT_GEOMETRY_ID = '__draft__';
 
 function updateRingPoints(element, ringIndex, nextPoints) {
   if (!element) return element;
-=======
-
-function updateRingPoints(element, ringIndex, nextPoints) {
->>>>>>> main
   if (ringIndex === OUTER_RING_INDEX) return { ...element, points: nextPoints };
 
   const holes = element.holes ? [...element.holes] : [];
@@ -46,7 +41,6 @@ export function usePolygonEditor({
   const [draggingVertex, setDraggingVertex] = useState(null);
   const [activeRingIndex, setActiveRingIndex] = useState(OUTER_RING_INDEX);
   const [drawingHoleForId, setDrawingHoleForId] = useState(null);
-<<<<<<< codex/reimplement-polygon-holes-support-r6shil
 
   const editGeomEl = useMemo(() => elements.find(el => el.id === editGeomId) || null, [editGeomId, elements]);
   const isDrawingHole = drawingHoleForId != null;
@@ -70,46 +64,11 @@ export function usePolygonEditor({
     setSelectedId(null);
     setSidebarTab('elements');
   }, [activeGroup, activeGroupId, resetDraftPoints, setDraftElement, setSelectedId, setSidebarTab]);
-=======
-
-  const editGeomEl = useMemo(() => elements.find(el => el.id === editGeomId) || null, [editGeomId, elements]);
-  const isDrawingHole = drawingHoleForId != null && drawingHoleForId === editGeomId;
-
-  const resetDraft = useCallback(() => {
-    setCurrentPoints([]);
-    setIsDrawing(false);
-  }, [setCurrentPoints, setIsDrawing]);
-
-  const finishPolygon = useCallback((points) => {
-    const newId = `element_${Date.now()}`;
-    const attrs = activeGroup
-      ? activeGroup.attrKeys.map(key => ({ key, value: '' }))
-      : [{ key: '', value: '' }];
-
-    setElements(prev => [
-      ...prev,
-      {
-        id: newId,
-        points: [...points],
-        holes: [],
-        attributes: [],
-        groupName: activeGroup ? activeGroup.name : null,
-      },
-    ]);
-    resetDraft();
-    setSelectedId(newId);
-    setEditId(newId);
-    setEditElId(newId);
-    setEditAttrs(attrs);
-    setSidebarTab('elements');
-  }, [activeGroup, resetDraft, setEditAttrs, setEditElId, setEditId, setElements, setSelectedId, setSidebarTab]);
->>>>>>> main
 
   const finishHole = useCallback((points) => {
     if (!drawingHoleForId) return;
 
     let insertedRingIndex = OUTER_RING_INDEX;
-<<<<<<< codex/reimplement-polygon-holes-support-r6shil
 
     if (drawingHoleForId === DRAFT_GEOMETRY_ID) {
       setDraftElement(prev => {
@@ -142,30 +101,13 @@ export function usePolygonEditor({
     beginDraftElement(currentPoints);
     return true;
   }, [beginDraftElement, currentPoints, finishHole, isDrawingHole]);
-=======
-    setElements(prev => prev.map(el => {
-      if (el.id !== drawingHoleForId) return el;
-      const holes = [...(el.holes || []), [...points]];
-      insertedRingIndex = holes.length - 1;
-      return { ...el, holes };
-    }));
-    resetDraft();
-    setSelectedId(drawingHoleForId);
-    setActiveRingIndex(insertedRingIndex);
-    setDrawingHoleForId(null);
-  }, [drawingHoleForId, resetDraft, setElements, setSelectedId]);
->>>>>>> main
 
   const handleCanvasClick = useCallback((e) => {
     if (isPanning.current || e.ctrlKey) return;
     const allowGeometryDraft = isDrawingHole && editGeomId;
     if (editGeomId && !allowGeometryDraft) return;
-<<<<<<< codex/reimplement-polygon-holes-support-r6shil
     if (draftElement && !isDrawingHole) return;
     if (['polygon', 'path'].includes(e.target.tagName) && !isDrawing && !allowGeometryDraft && !isDrawingDraftHole) return;
-=======
-    if (['polygon', 'path'].includes(e.target.tagName) && !isDrawing && !allowGeometryDraft) return;
->>>>>>> main
 
     const pt = getSVGPoint(e);
     if (!pt) return;
@@ -175,38 +117,19 @@ export function usePolygonEditor({
       const dist = Math.sqrt((pt.x - first.x) ** 2 + (pt.y - first.y) ** 2);
       const rect = imgRef.current?.getBoundingClientRect();
       if (rect && dist < 25 * (imgSize.w / rect.width)) {
-<<<<<<< codex/reimplement-polygon-holes-support-r6shil
         completeCurrentRing();
-=======
-        if (allowGeometryDraft) finishHole(currentPoints);
-        else finishPolygon(currentPoints);
->>>>>>> main
         return;
       }
     }
 
     setCurrentPoints(prev => [...prev, pt]);
     setIsDrawing(true);
-<<<<<<< codex/reimplement-polygon-holes-support-r6shil
   }, [completeCurrentRing, currentPoints, draftElement, editGeomId, getSVGPoint, imgRef, imgSize, isDrawing, isDrawingDraftHole, isDrawingHole, isPanning, setCurrentPoints, setIsDrawing]);
 
   const handleDoubleClick = useCallback((e) => {
     e.preventDefault();
     completeCurrentRing();
   }, [completeCurrentRing]);
-=======
-  }, [currentPoints, editGeomId, finishHole, finishPolygon, getSVGPoint, imgRef, imgSize, isDrawing, isDrawingHole, isPanning, setCurrentPoints, setIsDrawing]);
-
-  const handleDoubleClick = useCallback((e) => {
-    e.preventDefault();
-    if (currentPoints.length < 3) return;
-    if (isDrawingHole && editGeomId) {
-      finishHole(currentPoints);
-      return;
-    }
-    finishPolygon(currentPoints);
-  }, [currentPoints, editGeomId, finishHole, finishPolygon, isDrawingHole]);
->>>>>>> main
 
   const startGeomEdit = useCallback((elId) => {
     setEditId(null);
@@ -214,7 +137,6 @@ export function usePolygonEditor({
     setSidebarTab('elements');
     setActiveRingIndex(OUTER_RING_INDEX);
     setDrawingHoleForId(null);
-<<<<<<< codex/reimplement-polygon-holes-support-r6shil
     resetDraftPoints();
   }, [resetDraftPoints, setEditId, setSelectedId, setSidebarTab]);
 
@@ -243,28 +165,6 @@ export function usePolygonEditor({
       return next;
     });
   }, [setCurrentPoints, setIsDrawing]);
-=======
-    resetDraft();
-  }, [resetDraft, setEditId, setSelectedId, setSidebarTab]);
-
-  const selectGeomRing = useCallback((ringIndex) => {
-    setActiveRingIndex(ringIndex);
-    resetDraft();
-    setDrawingHoleForId(null);
-  }, [resetDraft]);
-
-  const startHoleDrawing = useCallback((elId) => {
-    setSelectedId(elId);
-    setActiveRingIndex(OUTER_RING_INDEX);
-    setDrawingHoleForId(elId);
-    resetDraft();
-  }, [resetDraft, setSelectedId]);
-
-  const cancelRingDrawing = useCallback(() => {
-    setDrawingHoleForId(null);
-    resetDraft();
-  }, [resetDraft]);
->>>>>>> main
 
   const handleVertexMouseDown = useCallback((e, elId, ringIndex, pointIdx) => {
     e.stopPropagation();
@@ -325,7 +225,6 @@ export function usePolygonEditor({
   }, [setElements]);
 
   const removeHole = useCallback((elId, holeIndex) => {
-<<<<<<< codex/reimplement-polygon-holes-support-r6shil
     if (elId === DRAFT_GEOMETRY_ID) {
       setDraftElement(prev => {
         if (!prev) return prev;
@@ -344,22 +243,12 @@ export function usePolygonEditor({
       }));
     }
 
-=======
-    setElements(prev => prev.map(el => {
-      if (el.id !== elId) return el;
-      return {
-        ...el,
-        holes: (el.holes || []).filter((_, index) => index !== holeIndex),
-      };
-    }));
->>>>>>> main
     setActiveRingIndex(current => {
       if (current === holeIndex) return OUTER_RING_INDEX;
       if (current > holeIndex) return current - 1;
       return current;
     });
     setDrawingHoleForId(null);
-<<<<<<< codex/reimplement-polygon-holes-support-r6shil
     resetDraftPoints();
   }, [resetDraftPoints, setDraftElement, setElements]);
 
@@ -379,22 +268,6 @@ export function usePolygonEditor({
     handleDoubleClick,
     handleVertexMouseDown,
     isDrawingDraftHole,
-=======
-    resetDraft();
-  }, [resetDraft, setElements]);
-
-  return {
-    OUTER_RING_INDEX,
-    activeRingIndex,
-    addVertex,
-    cancelRingDrawing,
-    draggingVertex,
-    editGeomEl,
-    finishPolygon,
-    handleCanvasClick,
-    handleDoubleClick,
-    handleVertexMouseDown,
->>>>>>> main
     isDrawingHole,
     removeHole,
     removeVertex,
@@ -402,9 +275,6 @@ export function usePolygonEditor({
     setDraggingVertex,
     startGeomEdit,
     startHoleDrawing,
-<<<<<<< codex/reimplement-polygon-holes-support-r6shil
     undoLastPoint,
-=======
->>>>>>> main
   };
 }

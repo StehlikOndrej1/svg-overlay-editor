@@ -150,24 +150,36 @@ export default function Editor() {
   }, [imgSize]);
 
   const {
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
     DRAFT_GEOMETRY_ID,
+=======
+>>>>>>> main
     OUTER_RING_INDEX,
     activeRingIndex,
     addVertex,
     cancelRingDrawing,
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
     completeCurrentRing,
+=======
+>>>>>>> main
     editGeomEl,
     handleCanvasClick,
     handleDoubleClick,
     handleVertexMouseDown,
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
     isDrawingDraftHole,
+=======
+>>>>>>> main
     isDrawingHole,
     removeHole,
     removeVertex,
     selectGeomRing,
     startGeomEdit: startGeomEditBase,
     startHoleDrawing,
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
     undoLastPoint,
+=======
+>>>>>>> main
   } = usePolygonEditor({
     activeGroup,
     activeGroupId,
@@ -226,7 +238,11 @@ export default function Editor() {
   }, [draftElement, groups]);
 
   const handlePolygonClick = (e, elId) => {
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
     if (isDrawingHole && (editGeomId === elId || elId === DRAFT_GEOMETRY_ID)) return;
+=======
+    if (isDrawingHole && editGeomId === elId) return;
+>>>>>>> main
     e.stopPropagation();
     if (isDrawing) return;
     if (elId === DRAFT_GEOMETRY_ID) return;
@@ -280,7 +296,10 @@ export default function Editor() {
 
   const cancelRename = () => setRenamingId(null);
   const startGeomEdit = useCallback((elId) => {
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
     setDraftElement(null);
+=======
+>>>>>>> main
     setEditGeomId(elId);
     startGeomEditBase(elId);
   }, [startGeomEditBase]);
@@ -292,7 +311,11 @@ export default function Editor() {
   useEffect(() => {
     const handler = (e) => {
       if (e.key === 'Escape') {
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
         if (isDrawingHole) { cancelRingDrawing(); return; }
+=======
+        if (editGeomId && isDrawingHole) { cancelRingDrawing(); return; }
+>>>>>>> main
         if (editGeomId) { stopGeomEdit(); return; }
         if (isDrawing) {
           setCurrentPoints([]);
@@ -321,7 +344,11 @@ export default function Editor() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
   }, [cancelDraft, cancelRingDrawing, completeCurrentRing, deleteElement, draftElement, editGeomId, editId, isSketchMode, isDrawing, isDrawingHole, renamingId, selectedId, stopGeomEdit, currentPoints.length, undoLastPoint]);
+=======
+  }, [cancelRingDrawing, deleteElement, editGeomId, editId, isDrawingHole, renamingId, selectedId, stopGeomEdit]);
+>>>>>>> main
 
   const exportSVG = () => downloadFile(generateSVG(elements, imgSize.w, imgSize.h), 'overlay.svg', 'image/svg+xml');
   const exportLibrary = () => downloadFile(JS_LIBRARY, 'svg-overlay-map.js', 'text/javascript');
@@ -562,10 +589,15 @@ export default function Editor() {
         <span><span className={`status-dot ${phase === 'canvas' ? 'green' : 'yellow'}`} />{phase === 'canvas' ? 'Editor' : phase === 'choose' ? 'Výběr režimu' : 'Nahrávání'}</span>
         {imgSize.w > 0 && <span>{imgSize.w}×{imgSize.h}</span>}
         <span>{elements.length} prvků</span>
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
         {isSketchMode && <span><span className="status-dot orange" />{draftElement ? 'Review draftu' : 'Tvorba obrysu'}</span>}
         {isDrawing && <span><span className="status-dot blue" />{isDrawingDraftHole ? 'Kreslení hole' : 'Kreslení'} · {currentPoints.length} bodů</span>}
         {editGeomId && <span><span className="status-dot orange" />Úprava geometrie · {activeRingIndex === OUTER_RING_INDEX ? 'obrys' : `hole ${activeRingIndex + 1}`}</span>}
         {draftElement && <span>{(draftElement.holes || []).length} holes v draftu</span>}
+=======
+        {isDrawing && <span><span className="status-dot blue" />{isDrawingHole ? 'Kreslení hole' : 'Kreslení'} · {currentPoints.length} bodů</span>}
+        {editGeomId && <span><span className="status-dot orange" />Úprava geometrie · {activeRingIndex === OUTER_RING_INDEX ? 'obrys' : `hole ${activeRingIndex + 1}`}</span>}
+>>>>>>> main
         {activeGroup && <span style={{ color: 'var(--group-purple)' }}>⬡ {activeGroup.name}</span>}
         {zoom !== 1 && <span>{Math.round(zoom * 100)}%</span>}
       </div>

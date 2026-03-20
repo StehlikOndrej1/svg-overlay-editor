@@ -5,6 +5,7 @@ import ElementsPanel from './components/ElementsPanel.jsx';
 import GeometryEditorPanel from './components/GeometryEditorPanel.jsx';
 import GroupsPanel from './components/GroupsPanel.jsx';
 import SidebarActions from './components/SidebarActions.jsx';
+import SketchPanel from './components/SketchPanel.jsx';
 import { usePolygonEditor } from './hooks/usePolygonEditor.js';
 import { generateSVG, parseSVGFile } from './lib/svgUtils.js';
 import { JS_LIBRARY } from '../shared/lib/jsLibrary.js';
@@ -16,6 +17,7 @@ export default function Editor() {
   const [imgSize, setImgSize] = useState({ w: 0, h: 0 });
   const [elements, setElements] = useState([]);
   const [currentPoints, setCurrentPoints] = useState([]);
+  const [draftElement, setDraftElement] = useState(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [editId, setEditId] = useState(null);
@@ -42,6 +44,7 @@ export default function Editor() {
   const { zoom, pan, resetView, centerOn, zoomIn, zoomOut, isPanning } = useZoomPan(canvasAreaRef, phase !== 'canvas');
 
   const activeGroup = groups.find(g => g.id === activeGroupId) || null;
+  const isSketchMode = !!draftElement || (isDrawing && !editGeomId);
 
   const getDisplayedImgSize = useCallback(() => {
     if (!imgSize.w || !imgSize.h) return { w: 0, h: 0 };
@@ -71,6 +74,16 @@ export default function Editor() {
     return () => window.removeEventListener('resize', updateRenderedWidth);
   }, [phase, imgSize.w, image]);
 
+  const resetWorkingState = useCallback(() => {
+    setElements([]);
+    setCurrentPoints([]);
+    setDraftElement(null);
+    setIsDrawing(false);
+    setSelectedId(null);
+    setEditId(null);
+    setEditGeomId(null);
+  }, []);
+
   const handleImageUpload = (file) => {
     if (!file || !file.type.startsWith('image/')) return;
     const url = URL.createObjectURL(file);
@@ -78,12 +91,7 @@ export default function Editor() {
     img.onload = () => {
       setImgSize({ w: img.naturalWidth, h: img.naturalHeight });
       setImage(url);
-      setElements([]);
-      setCurrentPoints([]);
-      setIsDrawing(false);
-      setSelectedId(null);
-      setEditId(null);
-      setEditGeomId(null);
+      resetWorkingState();
       setPhase('canvas');
     };
     img.src = url;
@@ -119,6 +127,7 @@ export default function Editor() {
     if (image && editModeSvgLoaded) {
       setPhase('canvas');
       setCurrentPoints([]);
+      setDraftElement(null);
       setIsDrawing(false);
       setSelectedId(null);
     }
@@ -127,12 +136,7 @@ export default function Editor() {
   const goBack = () => {
     setPhase('choose');
     setImage(null);
-    setElements([]);
-    setCurrentPoints([]);
-    setIsDrawing(false);
-    setSelectedId(null);
-    setEditId(null);
-    setEditGeomId(null);
+    resetWorkingState();
     setEditModeSvgLoaded(false);
   };
 
@@ -146,23 +150,41 @@ export default function Editor() {
   }, [imgSize]);
 
   const {
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
+    DRAFT_GEOMETRY_ID,
+=======
+>>>>>>> main
     OUTER_RING_INDEX,
     activeRingIndex,
     addVertex,
     cancelRingDrawing,
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
+    completeCurrentRing,
+=======
+>>>>>>> main
     editGeomEl,
     handleCanvasClick,
     handleDoubleClick,
     handleVertexMouseDown,
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
+    isDrawingDraftHole,
+=======
+>>>>>>> main
     isDrawingHole,
     removeHole,
     removeVertex,
     selectGeomRing,
     startGeomEdit: startGeomEditBase,
     startHoleDrawing,
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
+    undoLastPoint,
+=======
+>>>>>>> main
   } = usePolygonEditor({
     activeGroup,
+    activeGroupId,
     currentPoints,
+    draftElement,
     editGeomId,
     elements,
     getSVGPoint,
@@ -171,8 +193,7 @@ export default function Editor() {
     isDrawing,
     isPanning,
     setCurrentPoints,
-    setEditAttrs,
-    setEditElId,
+    setDraftElement,
     setEditId,
     setElements,
     setIsDrawing,
@@ -180,10 +201,51 @@ export default function Editor() {
     setSidebarTab,
   });
 
+  const cancelDraft = useCallback(() => {
+    cancelRingDrawing();
+    setDraftElement(null);
+    setCurrentPoints([]);
+    setIsDrawing(false);
+    setSelectedId(null);
+  }, [cancelRingDrawing]);
+
+  const saveDraft = useCallback(() => {
+    if (!draftElement) return;
+
+    const newId = `element_${Date.now()}`;
+    const groupForDraft = draftElement.groupId ? groups.find(group => group.id === draftElement.groupId) || null : null;
+    const attrs = groupForDraft
+      ? groupForDraft.attrKeys.map(key => ({ key, value: '' }))
+      : [{ key: '', value: '' }];
+
+    setElements(prev => [
+      ...prev,
+      {
+        id: newId,
+        points: [...(draftElement.points || [])],
+        holes: [...(draftElement.holes || [])],
+        attributes: [],
+        groupName: draftElement.groupName || null,
+      },
+    ]);
+    setDraftElement(null);
+    if (draftElement.groupId) setActiveGroupId(draftElement.groupId);
+    setSelectedId(newId);
+    setEditId(newId);
+    setEditElId(newId);
+    setEditAttrs(attrs);
+    setSidebarTab('elements');
+  }, [draftElement, groups]);
+
   const handlePolygonClick = (e, elId) => {
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
+    if (isDrawingHole && (editGeomId === elId || elId === DRAFT_GEOMETRY_ID)) return;
+=======
     if (isDrawingHole && editGeomId === elId) return;
+>>>>>>> main
     e.stopPropagation();
     if (isDrawing) return;
+    if (elId === DRAFT_GEOMETRY_ID) return;
     if (editGeomId && editGeomId !== elId) return;
     setSelectedId(elId);
   };
@@ -194,6 +256,7 @@ export default function Editor() {
     setEditId(elId);
     setEditElId(el.id);
     setEditAttrs(el.attributes.length > 0 ? [...el.attributes] : [{ key: '', value: '' }]);
+    setDraftElement(null);
     setEditGeomId(null);
     setSidebarTab('elements');
   };
@@ -233,6 +296,10 @@ export default function Editor() {
 
   const cancelRename = () => setRenamingId(null);
   const startGeomEdit = useCallback((elId) => {
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
+    setDraftElement(null);
+=======
+>>>>>>> main
     setEditGeomId(elId);
     startGeomEditBase(elId);
   }, [startGeomEditBase]);
@@ -244,22 +311,44 @@ export default function Editor() {
   useEffect(() => {
     const handler = (e) => {
       if (e.key === 'Escape') {
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
+        if (isDrawingHole) { cancelRingDrawing(); return; }
+=======
         if (editGeomId && isDrawingHole) { cancelRingDrawing(); return; }
+>>>>>>> main
         if (editGeomId) { stopGeomEdit(); return; }
-        setCurrentPoints([]);
-        setIsDrawing(false);
+        if (isDrawing) {
+          setCurrentPoints([]);
+          setIsDrawing(false);
+          return;
+        }
+        if (draftElement) {
+          cancelDraft();
+        }
       }
-      if (e.key === 'F2' && selectedId && !editId && !renamingId) {
+      if (e.key === 'Enter' && isSketchMode && currentPoints.length >= 3) {
+        e.preventDefault();
+        completeCurrentRing();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && isSketchMode && currentPoints.length > 0) {
+        e.preventDefault();
+        undoLastPoint();
+      }
+      if (e.key === 'F2' && selectedId && !editId && !renamingId && !isSketchMode) {
         e.preventDefault();
         startRename(selectedId);
       }
-      if (e.key === 'Delete' && selectedId && !editId && !renamingId) {
+      if (e.key === 'Delete' && selectedId && !editId && !renamingId && !isSketchMode) {
         deleteElement(selectedId);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
+  }, [cancelDraft, cancelRingDrawing, completeCurrentRing, deleteElement, draftElement, editGeomId, editId, isSketchMode, isDrawing, isDrawingHole, renamingId, selectedId, stopGeomEdit, currentPoints.length, undoLastPoint]);
+=======
   }, [cancelRingDrawing, deleteElement, editGeomId, editId, isDrawingHole, renamingId, selectedId, stopGeomEdit]);
+>>>>>>> main
 
   const exportSVG = () => downloadFile(generateSVG(elements, imgSize.w, imgSize.h), 'overlay.svg', 'image/svg+xml');
   const exportLibrary = () => downloadFile(JS_LIBRARY, 'svg-overlay-map.js', 'text/javascript');
@@ -374,6 +463,8 @@ export default function Editor() {
             closeDotRadius={closeDotRadius}
             currentPoints={currentPoints}
             dotRadius={dotRadius}
+            draftElement={draftElement}
+            draftGeometryId={DRAFT_GEOMETRY_ID}
             editGeomEl={editGeomEl}
             editGeomId={editGeomId}
             elements={elements}
@@ -424,6 +515,22 @@ export default function Editor() {
                   setEditAttrs={setEditAttrs}
                   setEditElId={setEditElId}
                 />
+              ) : isSketchMode ? (
+                <SketchPanel
+                  activeRingIndex={activeRingIndex}
+                  cancelDraft={cancelDraft}
+                  cancelRingDrawing={cancelRingDrawing}
+                  closeCurrentRing={completeCurrentRing}
+                  currentPoints={currentPoints}
+                  draftElement={draftElement}
+                  isDrawing={isDrawing}
+                  isDrawingHole={isDrawingHole}
+                  removeHole={(holeIndex) => removeHole(DRAFT_GEOMETRY_ID, holeIndex)}
+                  saveDraft={saveDraft}
+                  selectRing={selectGeomRing}
+                  startHoleDrawing={() => startHoleDrawing(DRAFT_GEOMETRY_ID)}
+                  undoLastPoint={undoLastPoint}
+                />
               ) : editGeomId ? (
                 <GeometryEditorPanel
                   activeRingIndex={activeRingIndex}
@@ -472,7 +579,7 @@ export default function Editor() {
             )}
           </div>
 
-          {phase === 'canvas' && elements.length > 0 && !editId && !editGeomId && sidebarTab === 'elements' && (
+          {phase === 'canvas' && elements.length > 0 && !editId && !editGeomId && !isSketchMode && sidebarTab === 'elements' && (
             <SidebarActions exportLibrary={exportLibrary} exportSVG={exportSVG} goBack={goBack} />
           )}
         </div>
@@ -482,8 +589,15 @@ export default function Editor() {
         <span><span className={`status-dot ${phase === 'canvas' ? 'green' : 'yellow'}`} />{phase === 'canvas' ? 'Editor' : phase === 'choose' ? 'Výběr režimu' : 'Nahrávání'}</span>
         {imgSize.w > 0 && <span>{imgSize.w}×{imgSize.h}</span>}
         <span>{elements.length} prvků</span>
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
+        {isSketchMode && <span><span className="status-dot orange" />{draftElement ? 'Review draftu' : 'Tvorba obrysu'}</span>}
+        {isDrawing && <span><span className="status-dot blue" />{isDrawingDraftHole ? 'Kreslení hole' : 'Kreslení'} · {currentPoints.length} bodů</span>}
+        {editGeomId && <span><span className="status-dot orange" />Úprava geometrie · {activeRingIndex === OUTER_RING_INDEX ? 'obrys' : `hole ${activeRingIndex + 1}`}</span>}
+        {draftElement && <span>{(draftElement.holes || []).length} holes v draftu</span>}
+=======
         {isDrawing && <span><span className="status-dot blue" />{isDrawingHole ? 'Kreslení hole' : 'Kreslení'} · {currentPoints.length} bodů</span>}
         {editGeomId && <span><span className="status-dot orange" />Úprava geometrie · {activeRingIndex === OUTER_RING_INDEX ? 'obrys' : `hole ${activeRingIndex + 1}`}</span>}
+>>>>>>> main
         {activeGroup && <span style={{ color: 'var(--group-purple)' }}>⬡ {activeGroup.name}</span>}
         {zoom !== 1 && <span>{Math.round(zoom * 100)}%</span>}
       </div>

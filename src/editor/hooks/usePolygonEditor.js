@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const OUTER_RING_INDEX = -1;
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
+const DRAFT_GEOMETRY_ID = '__draft__';
 
 function updateRingPoints(element, ringIndex, nextPoints) {
+  if (!element) return element;
+=======
+
+function updateRingPoints(element, ringIndex, nextPoints) {
+>>>>>>> main
   if (ringIndex === OUTER_RING_INDEX) return { ...element, points: nextPoints };
 
   const holes = element.holes ? [...element.holes] : [];
@@ -18,7 +25,9 @@ function getRingPoints(element, ringIndex) {
 
 export function usePolygonEditor({
   activeGroup,
+  activeGroupId,
   currentPoints,
+  draftElement,
   editGeomId,
   elements,
   getSVGPoint,
@@ -27,8 +36,7 @@ export function usePolygonEditor({
   isDrawing,
   isPanning,
   setCurrentPoints,
-  setEditAttrs,
-  setEditElId,
+  setDraftElement,
   setEditId,
   setElements,
   setIsDrawing,
@@ -38,6 +46,31 @@ export function usePolygonEditor({
   const [draggingVertex, setDraggingVertex] = useState(null);
   const [activeRingIndex, setActiveRingIndex] = useState(OUTER_RING_INDEX);
   const [drawingHoleForId, setDrawingHoleForId] = useState(null);
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
+
+  const editGeomEl = useMemo(() => elements.find(el => el.id === editGeomId) || null, [editGeomId, elements]);
+  const isDrawingHole = drawingHoleForId != null;
+  const isDrawingDraftHole = drawingHoleForId === DRAFT_GEOMETRY_ID;
+
+  const resetDraftPoints = useCallback(() => {
+    setCurrentPoints([]);
+    setIsDrawing(false);
+  }, [setCurrentPoints, setIsDrawing]);
+
+  const beginDraftElement = useCallback((points) => {
+    setDraftElement({
+      points: [...points],
+      holes: [],
+      attributes: [],
+      groupId: activeGroupId || null,
+      groupName: activeGroup ? activeGroup.name : null,
+    });
+    resetDraftPoints();
+    setActiveRingIndex(OUTER_RING_INDEX);
+    setSelectedId(null);
+    setSidebarTab('elements');
+  }, [activeGroup, activeGroupId, resetDraftPoints, setDraftElement, setSelectedId, setSidebarTab]);
+=======
 
   const editGeomEl = useMemo(() => elements.find(el => el.id === editGeomId) || null, [editGeomId, elements]);
   const isDrawingHole = drawingHoleForId != null && drawingHoleForId === editGeomId;
@@ -70,11 +103,46 @@ export function usePolygonEditor({
     setEditAttrs(attrs);
     setSidebarTab('elements');
   }, [activeGroup, resetDraft, setEditAttrs, setEditElId, setEditId, setElements, setSelectedId, setSidebarTab]);
+>>>>>>> main
 
   const finishHole = useCallback((points) => {
     if (!drawingHoleForId) return;
 
     let insertedRingIndex = OUTER_RING_INDEX;
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
+
+    if (drawingHoleForId === DRAFT_GEOMETRY_ID) {
+      setDraftElement(prev => {
+        if (!prev) return prev;
+        const holes = [...(prev.holes || []), [...points]];
+        insertedRingIndex = holes.length - 1;
+        return { ...prev, holes };
+      });
+    } else {
+      setElements(prev => prev.map(el => {
+        if (el.id !== drawingHoleForId) return el;
+        const holes = [...(el.holes || []), [...points]];
+        insertedRingIndex = holes.length - 1;
+        return { ...el, holes };
+      }));
+      setSelectedId(drawingHoleForId);
+    }
+
+    resetDraftPoints();
+    setActiveRingIndex(insertedRingIndex);
+    setDrawingHoleForId(null);
+  }, [drawingHoleForId, resetDraftPoints, setDraftElement, setElements, setSelectedId]);
+
+  const completeCurrentRing = useCallback(() => {
+    if (currentPoints.length < 3) return false;
+    if (isDrawingHole) {
+      finishHole(currentPoints);
+      return true;
+    }
+    beginDraftElement(currentPoints);
+    return true;
+  }, [beginDraftElement, currentPoints, finishHole, isDrawingHole]);
+=======
     setElements(prev => prev.map(el => {
       if (el.id !== drawingHoleForId) return el;
       const holes = [...(el.holes || []), [...points]];
@@ -86,12 +154,18 @@ export function usePolygonEditor({
     setActiveRingIndex(insertedRingIndex);
     setDrawingHoleForId(null);
   }, [drawingHoleForId, resetDraft, setElements, setSelectedId]);
+>>>>>>> main
 
   const handleCanvasClick = useCallback((e) => {
     if (isPanning.current || e.ctrlKey) return;
     const allowGeometryDraft = isDrawingHole && editGeomId;
     if (editGeomId && !allowGeometryDraft) return;
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
+    if (draftElement && !isDrawingHole) return;
+    if (['polygon', 'path'].includes(e.target.tagName) && !isDrawing && !allowGeometryDraft && !isDrawingDraftHole) return;
+=======
     if (['polygon', 'path'].includes(e.target.tagName) && !isDrawing && !allowGeometryDraft) return;
+>>>>>>> main
 
     const pt = getSVGPoint(e);
     if (!pt) return;
@@ -101,14 +175,26 @@ export function usePolygonEditor({
       const dist = Math.sqrt((pt.x - first.x) ** 2 + (pt.y - first.y) ** 2);
       const rect = imgRef.current?.getBoundingClientRect();
       if (rect && dist < 25 * (imgSize.w / rect.width)) {
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
+        completeCurrentRing();
+=======
         if (allowGeometryDraft) finishHole(currentPoints);
         else finishPolygon(currentPoints);
+>>>>>>> main
         return;
       }
     }
 
     setCurrentPoints(prev => [...prev, pt]);
     setIsDrawing(true);
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
+  }, [completeCurrentRing, currentPoints, draftElement, editGeomId, getSVGPoint, imgRef, imgSize, isDrawing, isDrawingDraftHole, isDrawingHole, isPanning, setCurrentPoints, setIsDrawing]);
+
+  const handleDoubleClick = useCallback((e) => {
+    e.preventDefault();
+    completeCurrentRing();
+  }, [completeCurrentRing]);
+=======
   }, [currentPoints, editGeomId, finishHole, finishPolygon, getSVGPoint, imgRef, imgSize, isDrawing, isDrawingHole, isPanning, setCurrentPoints, setIsDrawing]);
 
   const handleDoubleClick = useCallback((e) => {
@@ -120,6 +206,7 @@ export function usePolygonEditor({
     }
     finishPolygon(currentPoints);
   }, [currentPoints, editGeomId, finishHole, finishPolygon, isDrawingHole]);
+>>>>>>> main
 
   const startGeomEdit = useCallback((elId) => {
     setEditId(null);
@@ -127,6 +214,36 @@ export function usePolygonEditor({
     setSidebarTab('elements');
     setActiveRingIndex(OUTER_RING_INDEX);
     setDrawingHoleForId(null);
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
+    resetDraftPoints();
+  }, [resetDraftPoints, setEditId, setSelectedId, setSidebarTab]);
+
+  const selectGeomRing = useCallback((ringIndex) => {
+    setActiveRingIndex(ringIndex);
+    resetDraftPoints();
+    setDrawingHoleForId(null);
+  }, [resetDraftPoints]);
+
+  const startHoleDrawing = useCallback((elId = DRAFT_GEOMETRY_ID) => {
+    setSelectedId(elId === DRAFT_GEOMETRY_ID ? null : elId);
+    setActiveRingIndex(OUTER_RING_INDEX);
+    setDrawingHoleForId(elId);
+    resetDraftPoints();
+  }, [resetDraftPoints, setSelectedId]);
+
+  const cancelRingDrawing = useCallback(() => {
+    setDrawingHoleForId(null);
+    resetDraftPoints();
+  }, [resetDraftPoints]);
+
+  const undoLastPoint = useCallback(() => {
+    setCurrentPoints(prev => {
+      const next = prev.slice(0, -1);
+      if (next.length === 0) setIsDrawing(false);
+      return next;
+    });
+  }, [setCurrentPoints, setIsDrawing]);
+=======
     resetDraft();
   }, [resetDraft, setEditId, setSelectedId, setSidebarTab]);
 
@@ -147,6 +264,7 @@ export function usePolygonEditor({
     setDrawingHoleForId(null);
     resetDraft();
   }, [resetDraft]);
+>>>>>>> main
 
   const handleVertexMouseDown = useCallback((e, elId, ringIndex, pointIdx) => {
     e.stopPropagation();
@@ -207,6 +325,26 @@ export function usePolygonEditor({
   }, [setElements]);
 
   const removeHole = useCallback((elId, holeIndex) => {
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
+    if (elId === DRAFT_GEOMETRY_ID) {
+      setDraftElement(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          holes: (prev.holes || []).filter((_, index) => index !== holeIndex),
+        };
+      });
+    } else {
+      setElements(prev => prev.map(el => {
+        if (el.id !== elId) return el;
+        return {
+          ...el,
+          holes: (el.holes || []).filter((_, index) => index !== holeIndex),
+        };
+      }));
+    }
+
+=======
     setElements(prev => prev.map(el => {
       if (el.id !== elId) return el;
       return {
@@ -214,12 +352,34 @@ export function usePolygonEditor({
         holes: (el.holes || []).filter((_, index) => index !== holeIndex),
       };
     }));
+>>>>>>> main
     setActiveRingIndex(current => {
       if (current === holeIndex) return OUTER_RING_INDEX;
       if (current > holeIndex) return current - 1;
       return current;
     });
     setDrawingHoleForId(null);
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
+    resetDraftPoints();
+  }, [resetDraftPoints, setDraftElement, setElements]);
+
+
+
+  return {
+    DRAFT_GEOMETRY_ID,
+    OUTER_RING_INDEX,
+    activeRingIndex,
+    addVertex,
+    beginDraftElement,
+    cancelRingDrawing,
+    completeCurrentRing,
+    draggingVertex,
+    editGeomEl,
+    handleCanvasClick,
+    handleDoubleClick,
+    handleVertexMouseDown,
+    isDrawingDraftHole,
+=======
     resetDraft();
   }, [resetDraft, setElements]);
 
@@ -234,6 +394,7 @@ export function usePolygonEditor({
     handleCanvasClick,
     handleDoubleClick,
     handleVertexMouseDown,
+>>>>>>> main
     isDrawingHole,
     removeHole,
     removeVertex,
@@ -241,5 +402,9 @@ export function usePolygonEditor({
     setDraggingVertex,
     startGeomEdit,
     startHoleDrawing,
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
+    undoLastPoint,
+=======
+>>>>>>> main
   };
 }

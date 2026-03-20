@@ -14,12 +14,15 @@ export default function GeometryEditorPanel({
 }) {
   return (
     <div style={{ animation: 'fadeIn 0.2s ease' }}>
+      <div style={{ marginBottom: 12 }}>
+        <div className="form-label" style={{ marginBottom: 4 }}>Úprava hotového prvku</div>
+        <div style={{ fontSize: 16, fontWeight: 700 }}>{editGeomEl?.id || 'Geometrie'}</div>
+      </div>
       <div className="geom-hint">
-        <strong>Úprava geometrie:</strong> {editGeomEl?.id}<br/>
         Přetahuj <strong>oranžové body</strong> pro přesun.<br/>
         Klikni na <strong>malé body na hranách</strong> pro přidání bodu.<br/>
         <strong>Pravý klik</strong> na bod pro odebrání (min. 3).<br/>
-        {isDrawingHole ? <>Kreslíš nový <strong>hole ring</strong> – uzavři ho zeleným/oranžovým bodem nebo dvojklikem.<br/></> : <>Vyber ring pro editaci nebo přidej nový hole.<br/></>}
+        {isDrawingHole ? <>Kreslíš nový <strong>hole ring</strong> – uzavři ho bodem, tlačítkem nebo dvojklikem.<br/></> : <>Vyber ring pro editaci nebo přidej nový hole.<br/></>}
         <strong>Esc</strong> pro ukončení.
       </div>
 

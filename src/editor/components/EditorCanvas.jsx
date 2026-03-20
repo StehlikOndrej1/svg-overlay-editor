@@ -1,10 +1,22 @@
 import { buildElementPathData, pointsToPathSegment } from '../lib/svgUtils.js';
 
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
+function getActiveRingPoints(element, ringIndex) {
+  if (!element) return [];
+  if (ringIndex === -1) return element.points || [];
+  return element.holes?.[ringIndex] || [];
+}
+
+=======
+>>>>>>> main
 export default function EditorCanvas({
   activeRingIndex,
   addVertex,
+  closeDotRadius,
   currentPoints,
   dotRadius,
+  draftElement,
+  draftGeometryId,
   editGeomEl,
   editGeomId,
   elements,
@@ -28,14 +40,18 @@ export default function EditorCanvas({
   zoom,
   zoomIn,
   zoomOut,
-  closeDotRadius,
   pan,
 }) {
   if (phase !== 'canvas') return null;
 
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
+  const activeRingPoints = getActiveRingPoints(editGeomEl, activeRingIndex);
+  const draftActiveRingPoints = getActiveRingPoints(draftElement, activeRingIndex);
+=======
   const activeRingPoints = editGeomEl
     ? (activeRingIndex === -1 ? editGeomEl.points || [] : editGeomEl.holes?.[activeRingIndex] || [])
     : [];
+>>>>>>> main
 
   return (
     <>
@@ -44,11 +60,15 @@ export default function EditorCanvas({
           <img ref={imgRef} src={image} alt="Base" draggable={false} style={{ maxWidth: '70vw', maxHeight: '75vh' }} />
           <svg
             ref={svgRef}
-            className={editGeomId ? '' : 'drawing-svg'}
+            className={editGeomId || draftElement ? '' : 'drawing-svg'}
             viewBox={`0 0 ${imgSize.w} ${imgSize.h}`}
             onClick={handleCanvasClick}
             onDoubleClick={handleDoubleClick}
+<<<<<<< codex/reimplement-polygon-holes-support-r6shil
+            style={(editGeomId || draftElement) && !isDrawingHole ? { cursor: 'default' } : {}}
+=======
             style={editGeomId && !isDrawingHole ? { cursor: 'default' } : {}}
+>>>>>>> main
           >
             {elements.map(el => {
               const isSelected = selectedId === el.id;
@@ -76,6 +96,29 @@ export default function EditorCanvas({
                 />
               );
             })}
+
+            {draftElement && (
+              <path
+                d={buildElementPathData(draftElement)}
+                fill="rgba(250,204,21,0.12)"
+                fillRule="evenodd"
+                stroke="var(--warning)"
+                strokeWidth={strokeW * 1.25}
+                strokeLinejoin="round"
+                strokeDasharray={`${strokeW * 2} ${strokeW * 1.5}`}
+                onClick={(e) => handlePolygonClick(e, draftGeometryId)}
+              />
+            )}
+
+            {draftElement && draftActiveRingPoints.length >= 3 && !isDrawingHole && (
+              <path
+                d={pointsToPathSegment(draftActiveRingPoints)}
+                fill="none"
+                stroke="var(--warning)"
+                strokeWidth={strokeW * 1.4}
+                strokeDasharray={`${strokeW * 2} ${strokeW * 1.5}`}
+              />
+            )}
 
             {editGeomEl && (
               <>

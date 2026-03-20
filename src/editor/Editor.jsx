@@ -146,16 +146,25 @@ export default function Editor() {
   }, [imgSize]);
 
   const {
+    OUTER_RING_INDEX,
+    activeRingIndex,
     addVertex,
+    cancelRingDrawing,
+    editGeomEl,
     handleCanvasClick,
     handleDoubleClick,
     handleVertexMouseDown,
+    isDrawingHole,
+    removeHole,
     removeVertex,
+    selectGeomRing,
     startGeomEdit: startGeomEditBase,
+    startHoleDrawing,
   } = usePolygonEditor({
     activeGroup,
     currentPoints,
     editGeomId,
+    elements,
     getSVGPoint,
     imgRef,
     imgSize,
@@ -172,6 +181,7 @@ export default function Editor() {
   });
 
   const handlePolygonClick = (e, elId) => {
+    if (isDrawingHole && editGeomId === elId) return;
     e.stopPropagation();
     if (isDrawing) return;
     if (editGeomId && editGeomId !== elId) return;
@@ -199,8 +209,11 @@ export default function Editor() {
     setElements(prev => prev.filter(e => e.id !== elId));
     if (selectedId === elId) setSelectedId(null);
     if (editId === elId) setEditId(null);
-    if (editGeomId === elId) setEditGeomId(null);
-  }, [editGeomId, editId, selectedId]);
+    if (editGeomId === elId) {
+      cancelRingDrawing();
+      setEditGeomId(null);
+    }
+  }, [cancelRingDrawing, editGeomId, editId, selectedId]);
 
   const startRename = (elId) => {
     setRenamingId(elId);
@@ -219,15 +232,19 @@ export default function Editor() {
   };
 
   const cancelRename = () => setRenamingId(null);
-  const startGeomEdit = (elId) => {
+  const startGeomEdit = useCallback((elId) => {
     setEditGeomId(elId);
     startGeomEditBase(elId);
-  };
-  const stopGeomEdit = () => setEditGeomId(null);
+  }, [startGeomEditBase]);
+  const stopGeomEdit = useCallback(() => {
+    cancelRingDrawing();
+    setEditGeomId(null);
+  }, [cancelRingDrawing]);
 
   useEffect(() => {
     const handler = (e) => {
       if (e.key === 'Escape') {
+        if (editGeomId && isDrawingHole) { cancelRingDrawing(); return; }
         if (editGeomId) { stopGeomEdit(); return; }
         setCurrentPoints([]);
         setIsDrawing(false);
@@ -242,7 +259,7 @@ export default function Editor() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [deleteElement, editGeomId, editId, renamingId, selectedId]);
+  }, [cancelRingDrawing, deleteElement, editGeomId, editId, isDrawingHole, renamingId, selectedId, stopGeomEdit]);
 
   const exportSVG = () => downloadFile(generateSVG(elements, imgSize.w, imgSize.h), 'overlay.svg', 'image/svg+xml');
   const exportLibrary = () => downloadFile(JS_LIBRARY, 'svg-overlay-map.js', 'text/javascript');
@@ -283,7 +300,6 @@ export default function Editor() {
   const closeDotRadius = dotRadius * 1.5;
   const vertexR = (6 * displayScale) / zoom;
   const midpointR = vertexR * 0.6;
-  const editGeomEl = editGeomId ? elements.find(e => e.id === editGeomId) : null;
 
   return (
     <>
@@ -353,6 +369,7 @@ export default function Editor() {
           )}
 
           <EditorCanvas
+            activeRingIndex={activeRingIndex}
             addVertex={addVertex}
             closeDotRadius={closeDotRadius}
             currentPoints={currentPoints}
@@ -368,6 +385,7 @@ export default function Editor() {
             image={image}
             imgRef={imgRef}
             imgSize={imgSize}
+            isDrawingHole={isDrawingHole}
             midpointR={midpointR}
             pan={pan}
             phase={phase}
@@ -407,7 +425,16 @@ export default function Editor() {
                   setEditElId={setEditElId}
                 />
               ) : editGeomId ? (
-                <GeometryEditorPanel editGeomEl={editGeomEl} stopGeomEdit={stopGeomEdit} />
+                <GeometryEditorPanel
+                  activeRingIndex={activeRingIndex}
+                  cancelRingDrawing={cancelRingDrawing}
+                  editGeomEl={editGeomEl}
+                  isDrawingHole={isDrawingHole}
+                  removeHole={removeHole}
+                  selectGeomRing={selectGeomRing}
+                  startHoleDrawing={startHoleDrawing}
+                  stopGeomEdit={stopGeomEdit}
+                />
               ) : (
                 <ElementsPanel
                   activeGroupId={activeGroupId}
@@ -455,8 +482,8 @@ export default function Editor() {
         <span><span className={`status-dot ${phase === 'canvas' ? 'green' : 'yellow'}`} />{phase === 'canvas' ? 'Editor' : phase === 'choose' ? 'Výběr režimu' : 'Nahrávání'}</span>
         {imgSize.w > 0 && <span>{imgSize.w}×{imgSize.h}</span>}
         <span>{elements.length} prvků</span>
-        {isDrawing && <span><span className="status-dot blue" />Kreslení · {currentPoints.length} bodů</span>}
-        {editGeomId && <span><span className="status-dot orange" />Úprava geometrie</span>}
+        {isDrawing && <span><span className="status-dot blue" />{isDrawingHole ? 'Kreslení hole' : 'Kreslení'} · {currentPoints.length} bodů</span>}
+        {editGeomId && <span><span className="status-dot orange" />Úprava geometrie · {activeRingIndex === OUTER_RING_INDEX ? 'obrys' : `hole ${activeRingIndex + 1}`}</span>}
         {activeGroup && <span style={{ color: 'var(--group-purple)' }}>⬡ {activeGroup.name}</span>}
         {zoom !== 1 && <span>{Math.round(zoom * 100)}%</span>}
       </div>

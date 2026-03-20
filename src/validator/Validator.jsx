@@ -1,17 +1,45 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { parsePathData } from '../editor/lib/svgUtils.js';
 import { useZoomPan } from '../shared/hooks/useZoomPan.js';
 
 function parseValidatorElements(text) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(text, 'image/svg+xml');
-  const polys = doc.querySelectorAll('[data-overlay-id]');
-  return Array.from(polys).map(p => {
+  const overlays = doc.querySelectorAll('[data-overlay-id]');
+
+  return Array.from(overlays).map(node => {
     const attrs = {};
-    Array.from(p.attributes).forEach(a => {
-      if (a.name.startsWith('data-') && a.name !== 'data-overlay-id') attrs[a.name.replace('data-', '')] = a.value;
+    Array.from(node.attributes).forEach(attribute => {
+      if (attribute.name.startsWith('data-') && attribute.name !== 'data-overlay-id') {
+        attrs[attribute.name.replace('data-', '')] = attribute.value;
+      }
     });
-    return { id: p.getAttribute('data-overlay-id'), points: p.getAttribute('points'), tag: p.tagName, attrs };
+
+    const tag = node.tagName.toLowerCase();
+    const pathData = tag === 'path' ? (node.getAttribute('d') || '') : null;
+    const rings = tag === 'path' ? parsePathData(pathData) : [];
+    const points = tag === 'polygon' ? (node.getAttribute('points') || '') : pathData;
+
+    return {
+      id: node.getAttribute('data-overlay-id'),
+      points,
+      tag,
+      attrs,
+      rings,
+      holeCount: Math.max(rings.length - 1, 0),
+      pointCount: tag === 'path'
+        ? rings.reduce((sum, ring) => sum + ring.length, 0)
+        : (node.getAttribute('points') || '').split(/\s+/).filter(Boolean).length,
+    };
   });
+}
+
+function formatGeometrySummary(element) {
+  if (!element) return '';
+  if (element.tag !== 'path') return element.points;
+
+  const outerCount = element.rings[0]?.length || 0;
+  return `outer: ${outerCount} bodů · holes: ${element.holeCount}\n${element.points}`;
 }
 
 export default function Validator() {
@@ -65,7 +93,7 @@ export default function Validator() {
   };
 
   const handleOverlayClick = (e) => {
-    if (['polygon', 'rect', 'circle'].includes(e.target.tagName)) {
+    if (['path', 'polygon', 'rect', 'circle'].includes(e.target.tagName)) {
       const id = e.target.getAttribute('data-overlay-id');
       if (id) {
         setSelectedEl(svgElements.find(x => x.id === id) || null);
@@ -87,6 +115,9 @@ export default function Validator() {
         el.style.cursor = 'pointer';
         el.style.pointerEvents = 'all';
         el.style.transition = 'fill 0.15s';
+        if (el.tagName.toLowerCase() === 'path') {
+          el.setAttribute('fill-rule', 'evenodd');
+        }
         el.addEventListener('mouseenter', () => el.setAttribute('fill', 'rgba(250,204,21,0.35)'));
         el.addEventListener('mouseleave', () => {
           const isSel = selectedEl && selectedEl.id === el.getAttribute('data-overlay-id');
@@ -141,8 +172,16 @@ export default function Validator() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Geometrie</label>
-                  <div className="form-input" style={{ background: 'var(--bg-tertiary)', fontSize: 11, wordBreak: 'break-all', lineHeight: 1.5 }}>{selectedEl.points}</div>
+                  <div className="form-input" style={{ background: 'var(--bg-tertiary)', fontSize: 11, wordBreak: 'break-all', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{formatGeometrySummary(selectedEl)}</div>
                 </div>
+                {selectedEl.tag === 'path' && (
+                  <div className="form-group">
+                    <label className="form-label">Rings</label>
+                    <div className="form-input" style={{ background: 'var(--bg-tertiary)' }}>
+                      {selectedEl.rings.length} ringů · {selectedEl.holeCount} holes · {selectedEl.pointCount} bodů
+                    </div>
+                  </div>
+                )}
                 {Object.keys(selectedEl.attrs).length > 0 && (
                   <>
                     <div className="divider" />
@@ -159,7 +198,10 @@ export default function Validator() {
                 <label className="form-label">Prvky ({svgElements.length})</label>
                 {svgElements.map(el => (
                   <div key={el.id} className="element-item" onClick={() => setSelectedEl(el)}>
-                    <div className="el-info"><div className="el-id">{el.id}</div><div className="el-points">{Object.keys(el.attrs).length} attr</div></div>
+                    <div className="el-info">
+                      <div className="el-id">{el.id}</div>
+                      <div className="el-points">{el.pointCount} bodů · {el.holeCount} holes · {Object.keys(el.attrs).length} attr</div>
+                    </div>
                     <span className="badge badge-blue">{el.tag}</span>
                   </div>
                 ))}
@@ -172,6 +214,7 @@ export default function Validator() {
         <span><span className={`status-dot ${image && svgContent ? 'green' : 'yellow'}`} />{image && svgContent ? 'Validace' : 'Čeká na soubory'}</span>
         {svgElements.length > 0 && <span>{svgElements.length} prvků</span>}
         {selectedEl && <span>Vybrán: {selectedEl.id}</span>}
+        {selectedEl?.holeCount > 0 && <span>{selectedEl.holeCount} holes</span>}
         {zoom !== 1 && <span>{Math.round(zoom * 100)}%</span>}
       </div>
     </>
